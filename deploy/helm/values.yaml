@@ -1,0 +1,160 @@
+global:
+  image:
+    registry: ghcr.io/clan-platform
+    pullPolicy: IfNotPresent
+  postgresql:
+    host: postgresql
+    port: 5432
+    username: clan
+    existingSecret: postgresql-secret
+    secretKey: password
+  redis:
+    host: redis-master
+    port: 6379
+
+services:
+  notificationService:
+    enabled: true
+    image: clan-communication-be/notification-service
+    tag: latest
+    replicaCount: 2
+    port: 8000
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+
+  emailService:
+    enabled: true
+    image: clan-communication-be/email-service
+    tag: latest
+    replicaCount: 2
+    port: 8001
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  smsService:
+    enabled: true
+    image: clan-communication-be/sms-service
+    tag: latest
+    replicaCount: 1
+    port: 8002
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  pushService:
+    enabled: true
+    image: clan-communication-be/push-notification-service
+    tag: latest
+    replicaCount: 1
+    port: 8003
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  inAppService:
+    enabled: true
+    image: clan-communication-be/in-app-notification-service
+    tag: latest
+    replicaCount: 2
+    port: 8004
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  whatsappService:
+    enabled: true
+    image: clan-communication-be/whatsapp-service
+    tag: latest
+    replicaCount: 1
+    port: 8005
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  websocketService:
+    enabled: true
+    image: clan-communication-be/websocket-service
+    tag: latest
+    replicaCount: 2
+    port: 8006
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 512Mi
+
+  whatsappWebjsService:
+    enabled: true
+    image: clan-communication-be/whatsapp-webjs-service
+    tag: latest
+    replicaCount: 1
+    port: 3000
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  host: api.clan-platform.com
+  tls:
+    enabled: true
+    secretName: clan-tls-cert
+
+postgresql:
+  enabled: true
+  auth:
+    username: clan
+    existingSecret: postgresql-secret
+  primary:
+    persistence:
+      size: 20Gi
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 5Gi

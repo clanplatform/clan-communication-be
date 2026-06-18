@@ -1,0 +1,17 @@
+{% extends "email/base.html" %}
+
+{% block title %}Welcome to {{ tenant_name }}{% endblock %}
+
+{% block content %}
+<h1>Welcome, {{ first_name }}!</h1>
+<p>
+  Thank you for joining <strong>{{ tenant_name }}</strong>. We are excited to have you on board.
+</p>
+<p>
+  Your account has been successfully created. You can now log in and start using the platform.
+</p>
+<a href="{{ login_url }}" class="button">Get Started</a>
+<p style="margin-top: 24px;">
+  If you have any questions, feel free to reply to this email or contact our support team.
+</p>
+{% endblock %}

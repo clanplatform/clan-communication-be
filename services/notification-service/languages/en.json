@@ -1,0 +1,18 @@
+{
+  "welcome": {
+    "subject": "Welcome to {{ tenant_name }}!",
+    "body": "Hi {{ first_name }}, welcome aboard!"
+  },
+  "password_reset": {
+    "subject": "Reset your password",
+    "body": "Click the link below to reset your password: {{ reset_url }}"
+  },
+  "otp": {
+    "subject": "Your verification code",
+    "body": "Your code is {{ otp }}. Valid for {{ expiry_minutes }} minutes."
+  },
+  "notification": {
+    "subject": "New notification",
+    "body": "{{ message }}"
+  }
+}

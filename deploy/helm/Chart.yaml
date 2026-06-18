@@ -1,0 +1,9 @@
+apiVersion: v2
+name: clan-communication
+description: Clan Communication Platform - multi-tenant SaaS microservices
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Clan Platform Team
+    email: clan.platform@gmail.com

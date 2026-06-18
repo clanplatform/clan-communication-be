@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: clan-communication
+
+resources:
+  - namespace.yaml
+  - redis.yaml
+  - ingress.yaml
+
+images:
+  - name: notification-service
+    newName: ghcr.io/clan-platform/notification-service
+    newTag: latest
+  - name: email-service
+    newName: ghcr.io/clan-platform/email-service
+    newTag: latest
+  - name: sms-service
+    newName: ghcr.io/clan-platform/sms-service
+    newTag: latest
+  - name: push-notification-service
+    newName: ghcr.io/clan-platform/push-notification-service
+    newTag: latest
+  - name: in-app-notification-service
+    newName: ghcr.io/clan-platform/in-app-notification-service
+    newTag: latest
+  - name: websocket-service
+    newName: ghcr.io/clan-platform/websocket-service
+    newTag: latest
+  - name: whatsapp-service
+    newName: ghcr.io/clan-platform/whatsapp-service
+    newTag: latest
+  - name: whatsapp-webjs-service
+    newName: ghcr.io/clan-platform/whatsapp-webjs-service
+    newTag: latest

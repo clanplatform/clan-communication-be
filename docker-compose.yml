@@ -1,0 +1,164 @@
+version: "3.9"
+
+# Multi-tenant SaaS communication platform — local development stack.
+# Supports 1000 tenants with minimal idle resource usage (async I/O throughout).
+
+x-python-service: &python-service
+  build:
+    context: .
+  restart: unless-stopped
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - NOTIFICATION_SERVICE_URL=http://notification-service:8000
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  # ---------------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: clan
+      POSTGRES_PASSWORD: clan_dev
+      POSTGRES_MULTIPLE_DATABASES: notifications,emails,sms,push,in_app,whatsapp
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/create-multiple-dbs.sh:/docker-entrypoint-initdb.d/create-multiple-dbs.sh
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clan"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Python microservices
+  # ---------------------------------------------------------------------------
+  notification-service:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/notifications
+      - REDIS_URL=redis://redis:6379/0
+      - EMAIL_SERVICE_URL=http://email-service:8001
+      - SMS_SERVICE_URL=http://sms-service:8002
+      - PUSH_SERVICE_URL=http://push-notification-service:8003
+      - IN_APP_SERVICE_URL=http://in-app-notification-service:8004
+      - WHATSAPP_SERVICE_URL=http://whatsapp-service:8005
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  email-service:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: services/email-service/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/emails
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - services/email-service/.env.example
+
+  sms-service:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: services/sms-service/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/sms
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - services/sms-service/.env.example
+
+  push-notification-service:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: services/push-notification-service/Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/push
+      - REDIS_URL=redis://redis:6379/0
+
+  in-app-notification-service:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: services/in-app-notification-service/Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/in_app
+      - REDIS_URL=redis://redis:6379/0
+      - WEBSOCKET_SERVICE_URL=http://websocket-service:8006
+
+  whatsapp-service:
+    <<: *python-service
+    build:
+      context: .
+      dockerfile: services/whatsapp-service/Dockerfile
+    ports:
+      - "8005:8005"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/whatsapp
+      - REDIS_URL=redis://redis:6379/0
+      - WHATSAPP_WEBJS_URL=http://whatsapp-webjs-service:3000
+
+  websocket-service:
+    build:
+      context: services/websocket-service
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8006"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  whatsapp-webjs-service:
+    build:
+      context: services/whatsapp-webjs-service
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NOTIFY_CALLBACK_URL=http://whatsapp-service:8005
+      - PORT=3000
+    volumes:
+      - whatsapp-session:/app/.wwebjs_auth
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  whatsapp-session:

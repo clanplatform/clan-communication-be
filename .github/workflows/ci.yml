@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Detect changed services for path-filtered builds
+  # ---------------------------------------------------------------------------
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      notification-service: ${{ steps.filter.outputs.notification-service }}
+      email-service: ${{ steps.filter.outputs.email-service }}
+      sms-service: ${{ steps.filter.outputs.sms-service }}
+      push-service: ${{ steps.filter.outputs.push-service }}
+      in-app-service: ${{ steps.filter.outputs.in-app-service }}
+      websocket-service: ${{ steps.filter.outputs.websocket-service }}
+      whatsapp-service: ${{ steps.filter.outputs.whatsapp-service }}
+      whatsapp-webjs: ${{ steps.filter.outputs.whatsapp-webjs }}
+      shared-lib: ${{ steps.filter.outputs.shared-lib }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            notification-service:
+              - 'services/notification-service/**'
+              - 'libs/communication_shared/**'
+            email-service:
+              - 'services/email-service/**'
+              - 'libs/communication_shared/**'
+            sms-service:
+              - 'services/sms-service/**'
+              - 'libs/communication_shared/**'
+            push-service:
+              - 'services/push-notification-service/**'
+              - 'libs/communication_shared/**'
+            in-app-service:
+              - 'services/in-app-notification-service/**'
+              - 'libs/communication_shared/**'
+            websocket-service:
+              - 'services/websocket-service/**'
+            whatsapp-service:
+              - 'services/whatsapp-service/**'
+              - 'libs/communication_shared/**'
+            whatsapp-webjs:
+              - 'services/whatsapp-webjs-service/**'
+            shared-lib:
+              - 'libs/communication_shared/**'
+
+  # ---------------------------------------------------------------------------
+  # Python services lint + test
+  # ---------------------------------------------------------------------------
+  python-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check libs/ services/ --select E,F,W,I
+      - run: ruff format --check libs/ services/
+
+  test-email-service:
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.email-service == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/email-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install shared lib
+        run: pip install -e ../../libs/communication_shared
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short --cov=app --cov-report=xml
+      - uses: codecov/codecov-action@v4
+        with:
+          file: services/email-service/coverage.xml
+          flags: email-service
+
+  # ---------------------------------------------------------------------------
+  # Node.js services lint + test
+  # ---------------------------------------------------------------------------
+  test-whatsapp-webjs:
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.whatsapp-webjs == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/whatsapp-webjs-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: services/whatsapp-webjs-service/package-lock.json
+      - run: npm ci
+      - run: node --check index.js
+
+  test-whatsapp-shim:
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.whatsapp-service == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/whatsapp-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: node --check index.js

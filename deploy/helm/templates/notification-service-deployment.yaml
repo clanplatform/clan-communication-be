@@ -1,0 +1,89 @@
+{{- if .Values.services.notificationService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  labels:
+    app: notification-service
+    version: {{ .Values.services.notificationService.tag | quote }}
+spec:
+  replicas: {{ .Values.services.notificationService.replicaCount }}
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: "{{ .Values.global.image.registry }}/{{ .Values.services.notificationService.image }}:{{ .Values.services.notificationService.tag }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.services.notificationService.port }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: database-url
+            - name: REDIS_URL
+              value: "redis://{{ .Values.global.redis.host }}:{{ .Values.global.redis.port }}/0"
+            - name: EMAIL_SERVICE_URL
+              value: "http://email-service:{{ .Values.services.emailService.port }}"
+            - name: SMS_SERVICE_URL
+              value: "http://sms-service:{{ .Values.services.smsService.port }}"
+            - name: PUSH_SERVICE_URL
+              value: "http://push-notification-service:{{ .Values.services.pushService.port }}"
+            - name: IN_APP_SERVICE_URL
+              value: "http://in-app-notification-service:{{ .Values.services.inAppService.port }}"
+            - name: WHATSAPP_SERVICE_URL
+              value: "http://whatsapp-service:{{ .Values.services.whatsappService.port }}"
+          resources:
+            {{- toYaml .Values.services.notificationService.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.services.notificationService.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.services.notificationService.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - port: {{ .Values.services.notificationService.port }}
+      targetPort: {{ .Values.services.notificationService.port }}
+{{- if .Values.services.notificationService.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: notification-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: notification-service
+  minReplicas: {{ .Values.services.notificationService.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.services.notificationService.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.notificationService.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+{{- end }}
