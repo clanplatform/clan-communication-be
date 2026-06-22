@@ -5,7 +5,6 @@ from typing import AsyncIterator
 
 import httpx
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import redis.asyncio as aioredis
 
 from app.api.v1.router import api_router
@@ -37,12 +36,40 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+# --- CORS (env-driven via CORS_ORIGINS) ------------------------------------
+# Authoritative CORS is the API gateway (Envoy). This block only applies while
+# the service is exposed directly (Render/nginx ingress). Origins come from the
+# CORS_ORIGINS env var (JSON list or comma-separated). Empty => no CORS (prod
+# default-deny); dev falls back to localhost.
+import os as _os
+import json as _json
+from fastapi.middleware.cors import CORSMiddleware as _CORSMiddleware
+
+
+def _clan_cors_origins() -> list:
+    raw = (_os.getenv("CORS_ORIGINS") or "").strip()
+    if raw.startswith("["):
+        try:
+            return [str(o).strip() for o in _json.loads(raw) if str(o).strip()]
+        except Exception:
+            return []
+    origins = [o.strip() for o in raw.split(",") if o.strip()]
+    if not origins and _os.getenv("ENVIRONMENT", "development").lower().startswith(("dev", "local")):
+        origins = ["http://localhost:3000", "http://localhost:8080"]
+    return origins
+
+
+_clan_origins = _clan_cors_origins()
+if _clan_origins:
+    app.add_middleware(
+        _CORSMiddleware,
+        allow_origins=_clan_origins,
+        allow_credentials="*" not in _clan_origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+# ---------------------------------------------------------------------------
 
 app.include_router(api_router)
 

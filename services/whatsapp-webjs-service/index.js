@@ -4,6 +4,8 @@
  * Maintains a persistent browser session and exposes an HTTP API
  * for the Python whatsapp-service to dispatch messages through.
  */
+const fs = require("fs");
+const path = require("path");
 const express = require("express");
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
@@ -70,6 +72,24 @@ client.on("message", async (msg) => {
   }
 });
 
+// Remove stale Chromium lock files left by a previous container instance.
+// Without this, Chromium refuses to start when the volume is reused.
+function cleanupChromiumLocks() {
+  const sessionDir = path.join("/app/.wwebjs_auth", `session-${SESSION_ID}`);
+  for (const lockFile of ["SingletonLock", "SingletonSocket", "SingletonCookie"]) {
+    const lockPath = path.join(sessionDir, lockFile);
+    try {
+      if (fs.existsSync(lockPath)) {
+        fs.unlinkSync(lockPath);
+        console.log(`[WhatsApp] Removed stale lock: ${lockFile}`);
+      }
+    } catch (err) {
+      console.warn(`[WhatsApp] Could not remove ${lockFile}:`, err.message);
+    }
+  }
+}
+
+cleanupChromiumLocks();
 client.initialize();
 
 // ---------------------------------------------------------------------------

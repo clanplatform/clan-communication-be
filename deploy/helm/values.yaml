@@ -11,6 +11,11 @@ global:
   redis:
     host: redis-master
     port: 6379
+  # Deployment environment + CORS. Authoritative CORS is the API gateway (Envoy);
+  # corsOrigins only applies to services exposed directly via the nginx Ingress
+  # (notification, websocket). JSON list or CSV; empty => default-deny in prod.
+  environment: production
+  corsOrigins: ""
 
 services:
   notificationService:

@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi import APIRouter
 
 from app.core.config import get_settings
@@ -26,7 +25,6 @@ app = FastAPI(
     description="Multi-provider SMS delivery service (Twilio/Vonage/SNS).",
     lifespan=lifespan,
 )
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(api_router)
 
 

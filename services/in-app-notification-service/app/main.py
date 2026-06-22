@@ -7,7 +7,6 @@ from typing import AsyncIterator
 
 import httpx
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update
 
@@ -115,7 +114,7 @@ async def mark_read(
     return InAppNotificationRead.model_validate(notif)
 
 
-@router.post("/notifications/{recipient_id}/read-all", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/notifications/{recipient_id}/read-all", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def mark_all_read(
     recipient_id: str,
     tenant_id: str,
@@ -144,7 +143,6 @@ app = FastAPI(
     description="Real-time in-app notification persistence and delivery.",
     lifespan=lifespan,
 )
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(router)
 
 

@@ -30,7 +30,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./scripts/create-multiple-dbs.sh:/docker-entrypoint-initdb.d/create-multiple-dbs.sh
     ports:
-      - "5432:5432"
+      - "5436:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U clan"]
       interval: 10s
@@ -41,7 +41,7 @@ services:
     image: redis:7.4-alpine
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
     ports:
-      - "6379:6379"
+      - "6384:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -57,7 +57,7 @@ services:
       context: .
       dockerfile: services/notification-service/Dockerfile
     ports:
-      - "8000:8000"
+      - "9000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/notifications
       - REDIS_URL=redis://redis:6379/0
@@ -78,10 +78,14 @@ services:
       context: .
       dockerfile: services/email-service/Dockerfile
     ports:
-      - "8001:8001"
+      - "9001:8001"
     environment:
       - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/emails
       - REDIS_URL=redis://redis:6379/0
+      - SENDGRID_ENABLED=true
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-noreply@clanplatform.com}
+      - SMTP_FROM_NAME=Clan Platform
     env_file:
       - services/email-service/.env.example
 
@@ -91,7 +95,7 @@ services:
       context: .
       dockerfile: services/sms-service/Dockerfile
     ports:
-      - "8002:8002"
+      - "9002:8002"
     environment:
       - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/sms
       - REDIS_URL=redis://redis:6379/0
@@ -104,7 +108,7 @@ services:
       context: .
       dockerfile: services/push-notification-service/Dockerfile
     ports:
-      - "8003:8003"
+      - "9003:8003"
     environment:
       - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/push
       - REDIS_URL=redis://redis:6379/0
@@ -115,7 +119,7 @@ services:
       context: .
       dockerfile: services/in-app-notification-service/Dockerfile
     ports:
-      - "8004:8004"
+      - "9004:8004"
     environment:
       - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/in_app
       - REDIS_URL=redis://redis:6379/0
@@ -127,7 +131,7 @@ services:
       context: .
       dockerfile: services/whatsapp-service/Dockerfile
     ports:
-      - "8005:8005"
+      - "9005:8005"
     environment:
       - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/whatsapp
       - REDIS_URL=redis://redis:6379/0
@@ -138,7 +142,7 @@ services:
       context: services/websocket-service
       dockerfile: Dockerfile
     ports:
-      - "8006:8006"
+      - "9006:8006"
     environment:
       - REDIS_URL=redis://redis:6379/0
     depends_on:

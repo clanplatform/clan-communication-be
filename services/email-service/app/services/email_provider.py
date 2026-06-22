@@ -23,9 +23,11 @@ class EmailProviderService:
         self._providers = self._build_provider_chain()
 
     def _build_provider_chain(self):
-        providers = [SMTPProvider()]
-        if settings.SENDGRID_ENABLED:
+        providers = []
+        # SendGrid is primary when configured; SMTP is always the final fallback.
+        if settings.SENDGRID_ENABLED and settings.SENDGRID_API_KEY:
             providers.append(SendGridProvider())
+        providers.append(SMTPProvider())
         if settings.AWS_SES_ENABLED:
             providers.append(SESProvider())
         return providers

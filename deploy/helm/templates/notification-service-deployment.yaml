@@ -40,6 +40,10 @@ spec:
               value: "http://in-app-notification-service:{{ .Values.services.inAppService.port }}"
             - name: WHATSAPP_SERVICE_URL
               value: "http://whatsapp-service:{{ .Values.services.whatsappService.port }}"
+            - name: ENVIRONMENT
+              value: {{ .Values.global.environment | default "production" | quote }}
+            - name: CORS_ORIGINS
+              value: {{ .Values.global.corsOrigins | quote }}
           resources:
             {{- toYaml .Values.services.notificationService.resources | nindent 12 }}
           livenessProbe:

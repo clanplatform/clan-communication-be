@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator, Any
 
 from fastapi import FastAPI, APIRouter, Depends, status
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,7 +67,6 @@ app = FastAPI(
     description="WhatsApp message delivery via WebJS worker and Meta Business API.",
     lifespan=lifespan,
 )
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(router)
 
 
