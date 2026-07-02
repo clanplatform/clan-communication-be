@@ -23,16 +23,16 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: clan
-      POSTGRES_PASSWORD: clan_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
       POSTGRES_MULTIPLE_DATABASES: notifications,emails,sms,push,in_app,whatsapp
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./scripts/create-multiple-dbs.sh:/docker-entrypoint-initdb.d/create-multiple-dbs.sh
     ports:
-      - "5436:5432"
+      - "5411:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U clan"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,7 +59,7 @@ services:
     ports:
       - "9000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/notifications
+      - DATABASE_URL=postgresql+asyncpg://postgres:root@postgres:5432/notifications
       - REDIS_URL=redis://redis:6379/0
       - EMAIL_SERVICE_URL=http://email-service:8001
       - SMS_SERVICE_URL=http://sms-service:8002
@@ -80,7 +80,7 @@ services:
     ports:
       - "9001:8001"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/emails
+      - DATABASE_URL=postgresql+asyncpg://postgres:root@postgres:5432/emails
       - REDIS_URL=redis://redis:6379/0
       - SENDGRID_ENABLED=true
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
@@ -97,7 +97,7 @@ services:
     ports:
       - "9002:8002"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/sms
+      - DATABASE_URL=postgresql+asyncpg://postgres:root@postgres:5432/sms
       - REDIS_URL=redis://redis:6379/0
     env_file:
       - services/sms-service/.env.example
@@ -110,7 +110,7 @@ services:
     ports:
       - "9003:8003"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/push
+      - DATABASE_URL=postgresql+asyncpg://postgres:root@postgres:5432/push
       - REDIS_URL=redis://redis:6379/0
 
   in-app-notification-service:
@@ -121,7 +121,7 @@ services:
     ports:
       - "9004:8004"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/in_app
+      - DATABASE_URL=postgresql+asyncpg://postgres:root@postgres:5432/in_app
       - REDIS_URL=redis://redis:6379/0
       - WEBSOCKET_SERVICE_URL=http://websocket-service:8006
 
@@ -133,7 +133,7 @@ services:
     ports:
       - "9005:8005"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://clan:clan_dev@postgres:5432/whatsapp
+      - DATABASE_URL=postgresql+asyncpg://postgres:root@postgres:5432/whatsapp
       - REDIS_URL=redis://redis:6379/0
       - WHATSAPP_WEBJS_URL=http://whatsapp-webjs-service:3000
 

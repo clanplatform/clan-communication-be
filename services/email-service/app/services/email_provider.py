@@ -12,6 +12,7 @@ from app.schemas.email import SendEmailRequest
 from app.services.providers.smtp_provider import SMTPProvider
 from app.services.providers.sendgrid_provider import SendGridProvider
 from app.services.providers.ses_provider import SESProvider
+from app.services.providers.postal_provider import PostalProvider
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -24,7 +25,10 @@ class EmailProviderService:
 
     def _build_provider_chain(self):
         providers = []
-        # SendGrid is primary when configured; SMTP is always the final fallback.
+        # Postal (self-hosted) is primary when configured,
+        # then SendGrid; SMTP is always the final fallback.
+        if settings.POSTAL_ENABLED and settings.POSTAL_API_KEY:
+            providers.append(PostalProvider())
         if settings.SENDGRID_ENABLED and settings.SENDGRID_API_KEY:
             providers.append(SendGridProvider())
         providers.append(SMTPProvider())
