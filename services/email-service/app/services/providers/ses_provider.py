@@ -4,6 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from app.core.config import get_settings
+from app.services.providers.base import ProviderSendResult
 
 settings = get_settings()
 
@@ -28,7 +29,7 @@ class SESProvider:
         body_html: str | None,
         body_text: str | None,
         reply_to: str | None = None,
-    ) -> str:
+    ) -> ProviderSendResult:
         body: dict = {}
         if body_text:
             body["Text"] = {"Data": body_text, "Charset": "UTF-8"}
@@ -52,4 +53,4 @@ class SESProvider:
         response = await loop.run_in_executor(
             None, lambda: self._client().send_email(**kwargs)
         )
-        return response["MessageId"]
+        return ProviderSendResult(message_id=response["MessageId"])

@@ -9,10 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.models.email_log import EmailLog, EmailStatus
 from app.schemas.email import SendEmailRequest
+from app.services.providers.base import ProviderSendResult
 from app.services.providers.smtp_provider import SMTPProvider
 from app.services.providers.sendgrid_provider import SendGridProvider
 from app.services.providers.ses_provider import SESProvider
-from app.services.providers.postal_provider import PostalProvider
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -25,24 +25,25 @@ class EmailProviderService:
 
     def _build_provider_chain(self):
         providers = []
-        # Postal (self-hosted) is primary when configured,
-        # then SendGrid; SMTP is always the final fallback.
-        if settings.POSTAL_ENABLED and settings.POSTAL_API_KEY:
-            providers.append(PostalProvider())
+        # SMTP is primary when configured, then SendGrid, then SES.
+        if settings.SMTP_ENABLED and settings.SMTP_HOST:
+            providers.append(SMTPProvider())
         if settings.SENDGRID_ENABLED and settings.SENDGRID_API_KEY:
             providers.append(SendGridProvider())
-        providers.append(SMTPProvider())
         if settings.AWS_SES_ENABLED:
             providers.append(SESProvider())
         return providers
 
     async def send(self, request: SendEmailRequest) -> EmailLog:
+        from_email = request.from_email or settings.SMTP_FROM_EMAIL
+        from_name = request.from_name or settings.SMTP_FROM_NAME
+
         log = EmailLog(
             id=str(uuid.uuid4()),
             tenant_id=request.tenant_id,
             notification_id=request.notification_id,
             recipient_email=request.to_email,
-            from_email=request.from_email or settings.SMTP_FROM_EMAIL,
+            from_email=from_email,
             subject=request.subject,
             body_html=request.body_html,
             body_text=request.body_text,
@@ -58,18 +59,24 @@ class EmailProviderService:
             try:
                 log.status = EmailStatus.SENDING
                 log.provider = provider.name
-                message_id = await provider.send(
+                result = await provider.send(
                     to_email=request.to_email,
-                    from_email=request.from_email or settings.SMTP_FROM_EMAIL,
-                    from_name=request.from_name or settings.SMTP_FROM_NAME,
+                    from_email=from_email,
+                    from_name=from_name,
                     subject=request.subject,
                     body_html=request.body_html,
                     body_text=request.body_text,
                     reply_to=request.reply_to,
                 )
-                log.provider_message_id = message_id
+                # Providers normally return ProviderSendResult; tolerate a
+                # bare message-id string from custom implementations.
+                if not isinstance(result, ProviderSendResult):
+                    result = ProviderSendResult(message_id=str(result))
+
+                log.provider_message_id = result.message_id
                 log.status = EmailStatus.SENT
                 log.sent_at = datetime.now(timezone.utc)
+
                 await self._db.commit()
                 logger.info(
                     "Email sent via %s: %s -> %s",
@@ -84,7 +91,11 @@ class EmailProviderService:
                 log.retry_count += 1
 
         log.status = EmailStatus.FAILED
-        log.error_detail = str(last_error)
+        log.error_detail = (
+            str(last_error)
+            if last_error
+            else "no email provider configured (enable SMTP, SendGrid or SES)"
+        )
         await self._db.commit()
         logger.error("All email providers failed for notification %s", request.notification_id)
         return log

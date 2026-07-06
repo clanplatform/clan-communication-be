@@ -13,21 +13,20 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost:5432/emails"
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # Postal — self-hosted mail server (primary when enabled)
-    POSTAL_URL: str = "http://postal:5000"
-    POSTAL_API_KEY: str = ""
-    POSTAL_ENABLED: bool = False
-
-    # SMTP provider (primary)
+    # SMTP relay (primary when enabled) — Gmail, Outlook, Mailgun, corporate, ...
+    SMTP_ENABLED: bool = False
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_USE_TLS: bool = True
+    SMTP_USE_TLS: bool = True    # STARTTLS (port 587)
+    SMTP_USE_SSL: bool = False   # implicit TLS (port 465); overrides SMTP_USE_TLS
+
+    # Default sender identity (used by all providers)
     SMTP_FROM_EMAIL: str = "noreply@example.com"
     SMTP_FROM_NAME: str = "Clan Platform"
 
-    # SendGrid fallback
+    # SendGrid
     SENDGRID_API_KEY: str = ""
     SENDGRID_ENABLED: bool = False
 

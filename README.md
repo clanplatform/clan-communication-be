@@ -1,4 +1,4 @@
-# Clan Communication Backend
+﻿# Clan Communication Backend
 
 Multi-tenant SaaS communication platform built with Python FastAPI microservices.  
 Supports **1,000+ tenants** with minimal idle resource usage.
@@ -6,31 +6,31 @@ Supports **1,000+ tenants** with minimal idle resource usage.
 ## Architecture
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│                    API Gateway / Ingress                   │
-└────────────┬───────────────────────────────────────────────┘
-             │
-             ▼
-┌────────────────────────┐     Redis Streams / Pub-Sub
-│  notification-service  │◄────────────────────────────┐
-│   (orchestrator :8000) │                             │
-└──┬──┬──┬──┬──┬─────────┘                             │
-   │  │  │  │  │                                        │
-   ▼  ▼  ▼  ▼  ▼                                        │
- email sms push in-app whatsapp                         │
-  :8001 :8002 :8003 :8004 :8005                         │
-                             │                          │
-                             ▼                          │
-                   whatsapp-webjs-service :3000          │
-                                                        │
-                   websocket-service :8006 ─────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                    API Gateway / Ingress                   â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+             â”‚
+             â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     Redis Streams / Pub-Sub
+â”‚  notification-service  â”‚â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚   (orchestrator :8000) â”‚                             â”‚
+â””â”€â”€â”¬â”€â”€â”¬â”€â”€â”¬â”€â”€â”¬â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                             â”‚
+   â”‚  â”‚  â”‚  â”‚  â”‚                                        â”‚
+   â–¼  â–¼  â–¼  â–¼  â–¼                                        â”‚
+ email sms push in-app whatsapp                         â”‚
+  :8001 :8002 :8003 :8004 :8005                         â”‚
+                             â”‚                          â”‚
+                             â–¼                          â”‚
+                   whatsapp-webjs-service :3000          â”‚
+                                                        â”‚
+                   websocket-service :8006 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ## Services
 
 | Service | Port | Description |
 |---|---|---|
-| `notification-service` | 8000 | Core orchestrator — routes to channel services |
+| `notification-service` | 8000 | Core orchestrator â€” routes to channel services |
 | `email-service` | 8001 | SMTP / SendGrid / AWS SES with auto-failover |
 | `sms-service` | 8002 | Twilio / Vonage / AWS SNS |
 | `push-notification-service` | 8003 | FCM / APNS |

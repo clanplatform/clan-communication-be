@@ -3,6 +3,7 @@ from __future__ import annotations
 import httpx
 
 from app.core.config import get_settings
+from app.services.providers.base import ProviderSendResult
 
 settings = get_settings()
 
@@ -21,7 +22,7 @@ class SendGridProvider:
         body_html: str | None,
         body_text: str | None,
         reply_to: str | None = None,
-    ) -> str:
+    ) -> ProviderSendResult:
         content = []
         if body_text:
             content.append({"type": "text/plain", "value": body_text})
@@ -48,4 +49,6 @@ class SendGridProvider:
                 timeout=10.0,
             )
             resp.raise_for_status()
-            return resp.headers.get("X-Message-Id", "unknown")
+            return ProviderSendResult(
+                message_id=resp.headers.get("X-Message-Id", "unknown")
+            )
