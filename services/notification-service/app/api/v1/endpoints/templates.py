@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -73,7 +73,7 @@ async def delete_template(
     tenant_id: str = Depends(get_tenant_id),
     _: str = Depends(verify_api_key),
     db: AsyncSession = Depends(get_db),
-) -> None:
+) -> Response:
     result = await db.execute(
         select(NotificationTemplate).where(
             NotificationTemplate.id == template_id,
@@ -85,3 +85,4 @@ async def delete_template(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
     tmpl.is_active = False
     await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
