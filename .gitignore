@@ -3,3 +3,6 @@ config/environments/local.env
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Claude Code workspace
+.claude/
