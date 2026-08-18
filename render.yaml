@@ -1,0 +1,176 @@
+# ================================================
+# Render Blueprint — clan-communication-be
+# Defines two email-service deployments:
+#   1. email-service-dev  → development
+#   2. email-service-prod → production
+# ================================================
+# Deploy: Connect this repo in Render → New → Blueprint
+# Docs  : https://render.com/docs/blueprint-spec
+#
+# Docker-based (env: docker), not the Python native runtime: the Dockerfile
+# COPYs libs/communication_shared (a sibling of services/email-service), so
+# the build context must be the repo root, not services/email-service alone.
+
+services:
+
+  # ──────────────────────────────────────────────
+  # SERVICE 1: Development
+  # ──────────────────────────────────────────────
+  - type: web
+    name: email-service-dev
+    env: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: services/email-service/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+
+    envVars:
+      # Application
+      - key: SERVICE_NAME
+        value: email-service
+      - key: VERSION
+        value: 1.0.0
+      - key: DEBUG
+        value: "true"
+
+      # PostgreSQL — same shared clan_platform database as the rest of the
+      # platform (not a separate "emails" DB). Paste the Internal/External
+      # URL from Render's Postgres dashboard, then change the scheme prefix
+      # from postgresql:// to postgresql+asyncpg:// (this service uses the
+      # async SQLAlchemy driver).
+      - key: DATABASE_URL
+        sync: false
+
+      # Redis — declared for parity with .env.example; not currently read
+      # by any email-service code path. Safe to leave as a placeholder.
+      - key: REDIS_URL
+        value: redis://localhost:6379/0
+
+      # SMTP relay (primary provider when enabled)
+      - key: SMTP_ENABLED
+        value: "true"
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false                  # Gmail: use an App Password, not the account password
+      - key: SMTP_USE_TLS
+        value: "true"
+      - key: SMTP_USE_SSL
+        value: "false"
+
+      # SendGrid (fallback provider)
+      - key: SENDGRID_ENABLED
+        value: "false"
+      - key: SENDGRID_API_KEY
+        sync: false
+
+      # AWS SES (second fallback provider)
+      - key: AWS_SES_ENABLED
+        value: "false"
+      - key: AWS_SES_REGION
+        value: us-east-1
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      # Default sender identity (used by all providers)
+      - key: SMTP_FROM_EMAIL
+        value: noreply@clan-platform.com
+      - key: SMTP_FROM_NAME
+        value: Clan Platform (Dev)
+
+      # Internal services (unused by current code paths; kept for parity)
+      - key: NOTIFICATION_SERVICE_URL
+        value: http://notification-service:8000
+
+      - key: MAX_RETRIES
+        value: "3"
+      - key: RETRY_DELAY_SECONDS
+        value: "30"
+
+
+  # ──────────────────────────────────────────────
+  # SERVICE 2: Production
+  # ──────────────────────────────────────────────
+  - type: web
+    name: email-service-prod
+    env: docker
+    region: oregon
+    plan: standard
+    dockerfilePath: services/email-service/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+
+    envVars:
+      # Application
+      - key: SERVICE_NAME
+        value: email-service
+      - key: VERSION
+        value: 1.0.0
+      - key: DEBUG
+        value: "false"
+
+      # PostgreSQL — same shared clan_platform database as the rest of the
+      # platform. Paste the Internal URL from Render's Postgres dashboard,
+      # then change the scheme prefix from postgresql:// to
+      # postgresql+asyncpg:// (this service uses the async SQLAlchemy driver).
+      - key: DATABASE_URL
+        sync: false
+
+      # Redis — declared for parity with .env.example; not currently read
+      # by any email-service code path. Safe to leave as a placeholder.
+      - key: REDIS_URL
+        value: redis://localhost:6379/0
+
+      # SMTP relay (primary provider when enabled)
+      - key: SMTP_ENABLED
+        value: "true"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_USE_TLS
+        value: "true"
+      - key: SMTP_USE_SSL
+        value: "false"
+
+      # SendGrid (fallback provider)
+      - key: SENDGRID_ENABLED
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+
+      # AWS SES (second fallback provider)
+      - key: AWS_SES_ENABLED
+        value: "false"
+      - key: AWS_SES_REGION
+        value: us-east-1
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      # Default sender identity (used by all providers)
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: Clan Platform
+
+      # Internal services (unused by current code paths; kept for parity)
+      - key: NOTIFICATION_SERVICE_URL
+        value: http://notification-service:8000
+
+      - key: MAX_RETRIES
+        value: "3"
+      - key: RETRY_DELAY_SECONDS
+        value: "30"
