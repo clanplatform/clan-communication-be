@@ -81,7 +81,7 @@ services:
 
       # Default sender identity (used by all providers)
       - key: SMTP_FROM_EMAIL
-        value: noreply@clan-platform.com
+        value: clan.platform@gmail.com
       - key: SMTP_FROM_NAME
         value: Clan Platform (Dev)
 
